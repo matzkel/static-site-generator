@@ -10,9 +10,9 @@ class HTMLNode():
 
     def props_to_html(self):
         if not isinstance(self.props, dict):
-            raise TypeError("props must be a dictionary")
+            raise TypeError("props is required to be a dictionary")
         if not self.props:
-            raise ValueError("props dictionary must be populated")
+            raise ValueError("props is required to be populated")
 
         result = ""
         for key, value in self.props.items():
