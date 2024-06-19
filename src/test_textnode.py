@@ -28,6 +28,11 @@ class TestTextNode(unittest.TestCase):
         ]
         self.assertEqual(split_nodes_delimiter([node], "`", TextType.CODE), result)
 
+    def test_split_nodes_no_delimiters(self):
+        node = TextNode("Just a **bold sentence**.", TextType.TEXT)
+        result = [TextNode("Just a **bold sentence**.", TextType.TEXT)]
+        self.assertEqual(split_nodes_delimiter([node], "`", TextType.ITALIC), result)
+
     def test_split_nodes_single_node(self):
         node = TextNode("This is text with a `code block` word.", TextType.TEXT)
         result = [

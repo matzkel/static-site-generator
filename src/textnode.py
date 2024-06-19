@@ -41,16 +41,15 @@ def split_nodes_delimiter(old_nodes, delimiter, text_type):
     if not isinstance(text_type, TextType):
         raise TypeError("text_type is required to be of appropriate value")
 
-
     new_nodes = []
     for node in old_nodes:
+        # TODO: Fix bug when bold symbol is being confused as italic sentence
         if node.text.count(delimiter) % 2 != 0:
             raise Exception("Invalid markdown syntax, missing closing delimiter?")
-
-        text = node.text.split(delimiter, maxsplit=2)
-        if delimiter not in node.text:
+        elif node.text.count(delimiter) == 0:
             return old_nodes
 
+        text = node.text.split(delimiter, maxsplit=2)   
         result = []
         if text[0] != "":
             result.append(TextNode(text[0], node.text_type, node.url))
@@ -62,7 +61,9 @@ def split_nodes_delimiter(old_nodes, delimiter, text_type):
                 text_type
             ))
         new_nodes.extend(result)
+
     return new_nodes
+
 
 def text_node_to_html_node(text_node):
     if text_node.text_type == TextType.TEXT:
