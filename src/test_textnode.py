@@ -4,6 +4,10 @@ from textnode import (
     TextNode,
     TextType,
     split_nodes_delimiter,
+    split_nodes_image,
+    split_nodes_link,
+    extract_markdown_images,
+    extract_markdown_links,
     text_node_to_html_node,
 )
 
@@ -58,6 +62,77 @@ class TestTextNode(unittest.TestCase):
     def test_split_nodes_missing_delimiter(self):
         node = TextNode("This one doesn't **have closing delimiter!", TextType.TEXT)
         self.assertRaises(Exception, split_nodes_delimiter, [node], "**", TextType.BOLD)
+
+    def test_split_nodes_image_multiple(self):
+        node = TextNode("This is text with an ![image](https://storage.googleapis.com/qvault-webapp-dynamic-assets/course_assets/zjjcJKZ.png) and ![another](https://storage.googleapis.com/qvault-webapp-dynamic-assets/course_assets/3elNhQu.png)", TextType.TEXT)
+        result = [
+            TextNode("This is text with an ", TextType.TEXT),
+            TextNode("image", TextType.IMAGE, "https://storage.googleapis.com/qvault-webapp-dynamic-assets/course_assets/zjjcJKZ.png"),
+            TextNode(" and ", TextType.TEXT),
+            TextNode("another", TextType.IMAGE, "https://storage.googleapis.com/qvault-webapp-dynamic-assets/course_assets/3elNhQu.png"),
+        ]
+        self.assertEqual(split_nodes_image([node]), result)
+
+    def test_split_nodes_image_single_node(self):
+        node = TextNode("This is text with an ![image](https://storage.googleapis.com/qvault-webapp-dynamic-assets/course_assets/zjjcJKZ.png)", TextType.TEXT)
+        result = [
+            TextNode("This is text with an ", TextType.TEXT),
+            TextNode("image", TextType.IMAGE, "https://storage.googleapis.com/qvault-webapp-dynamic-assets/course_assets/zjjcJKZ.png"),
+        ]
+        self.assertEqual(split_nodes_image([node]), result)
+
+    def test_split_nodes_image_multiple_nodes(self):
+        nodes = [
+            TextNode("This is text with an ![image](https://storage.googleapis.com/qvault-webapp-dynamic-assets/course_assets/zjjcJKZ.png).", TextType.TEXT),
+            TextNode("This one has ![second image](https://storage.googleapis.com/qvault-webapp-dynamic-assets/course_assets/3elNhQu.png)", TextType.TEXT),
+        ]
+        result = [
+            TextNode("This is text with an ", TextType.TEXT),
+            TextNode("image", TextType.IMAGE, "https://storage.googleapis.com/qvault-webapp-dynamic-assets/course_assets/zjjcJKZ.png"),
+            TextNode(".", TextType.TEXT),
+            TextNode("This one has ", TextType.TEXT),
+            TextNode("second image", TextType.IMAGE, "https://storage.googleapis.com/qvault-webapp-dynamic-assets/course_assets/3elNhQu.png"),
+        ]
+        self.assertEqual(split_nodes_image(nodes), result)
+
+    def test_split_nodes_link_multiple(self):
+        node = TextNode("This is text with a [link](https://www.example.com) and [another link](https://www.google.com)", TextType.TEXT)
+        result = [
+            TextNode("This is text with a ", TextType.TEXT),
+            TextNode("link", TextType.LINK, "https://www.example.com"),
+            TextNode(" and ", TextType.TEXT),
+            TextNode("another link", TextType.LINK, "https://www.google.com"),
+        ]
+        self.assertEqual(split_nodes_link([node]), result)
+
+    def test_split_nodes_link_single_node(self):
+        node = TextNode("This is text with a [link](https://www.example.com)", TextType.TEXT)
+        result = [
+            TextNode("This is text with a ", TextType.TEXT),
+            TextNode("link", TextType.LINK, "https://www.example.com"),
+        ]
+        self.assertEqual(split_nodes_link([node]), result)
+
+    def test_split_nodes_link_multiple_nodes(self):
+        nodes = [
+            TextNode("This is text with a [link](https://www.example.com)", TextType.TEXT),
+            TextNode("This is another text with [another link](https://www.google.com)", TextType.TEXT),
+        ]
+        result = [
+            TextNode("This is text with a ", TextType.TEXT),
+            TextNode("link", TextType.LINK, "https://www.example.com"),
+            TextNode("This is another text with ", TextType.TEXT),
+            TextNode("another link", TextType.LINK, "https://www.google.com"),
+        ]
+        self.assertEqual(split_nodes_link(nodes), result)
+
+    def test_extract_markdown_images(self):
+        text = "This is text with an ![image](https://storage.googleapis.com/qvault-webapp-dynamic-assets/course_assets/zjjcJKZ.png)"
+        self.assertEqual(extract_markdown_images(text), [("image", "https://storage.googleapis.com/qvault-webapp-dynamic-assets/course_assets/zjjcJKZ.png")])
+
+    def test_extract_markdown_links(self):
+        text = "This is text with a [link](https://www.example.com)"
+        self.assertEqual(extract_markdown_links(text), [("link", "https://www.example.com")])
 
     def test_to_html_node(self):
         node = TextNode("This is a text node", TextType.BOLD)

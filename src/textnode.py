@@ -1,4 +1,5 @@
 from enum import Enum
+import re
 
 from htmlnode import LeafNode
 
@@ -63,6 +64,62 @@ def split_nodes_delimiter(old_nodes, delimiter, text_type):
         new_nodes.extend(result)
 
     return new_nodes
+
+
+def split_nodes_image(old_nodes):
+    if not isinstance(old_nodes, list):
+        raise TypeError("old_nodes is required to be a list of TextNodes")
+
+    new_nodes = []
+    for node in old_nodes:
+        images = extract_markdown_images(node.text)
+        if not images:
+            return old_nodes
+
+        image_tup = images[0]
+        text = node.text.split(f"![{image_tup[0]}]({image_tup[1]})", maxsplit=1)
+        result = []
+        if text[0] != "":
+            result.append(TextNode(text[0], node.text_type, node.url))
+        result.append(TextNode(image_tup[0], TextType.IMAGE, image_tup[1]))
+        if text[1] != "":
+            result.extend(split_nodes_image(
+                [TextNode(text[1], node.text_type, node.url)]
+            ))
+        new_nodes.extend(result)
+    return new_nodes
+
+
+def split_nodes_link(old_nodes):
+    if not isinstance(old_nodes, list):
+        raise TypeError("old_nodes is required to be a list of TextNodes")
+
+    new_nodes = []
+    for node in old_nodes:
+        links = extract_markdown_links(node.text)
+        if not links:
+            return old_nodes
+
+        link_tup = links[0]
+        text = node.text.split(f"[{link_tup[0]}]({link_tup[1]})", maxsplit=1)
+        result = []
+        if text[0] != "":
+            result.append(TextNode(text[0], node.text_type, node.url))
+        result.append(TextNode(link_tup[0], TextType.LINK, link_tup[1]))
+        if text[1] != "":
+            result.extend(split_nodes_link(
+                [TextNode(text[1], node.text_type, node.url)]
+            ))
+        new_nodes.extend(result)
+    return new_nodes
+
+
+def extract_markdown_images(text):
+    return re.findall(r"!\[(.*?)\]\((.*?)\)", text)
+
+
+def extract_markdown_links(text):
+    return re.findall(r"\[(.*?)\]\((.*?)\)", text)
 
 
 def text_node_to_html_node(text_node):
