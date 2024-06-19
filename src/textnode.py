@@ -32,6 +32,16 @@ class TextNode():
         return f"TextNode('{self.text}', {self.text_type})"
 
 
+def text_to_text_nodes(text):
+    nodes = TextNode(text, TextType.TEXT)
+    nodes = split_nodes_delimiter([nodes], "**", TextType.BOLD)
+    nodes = split_nodes_delimiter(nodes, "*", TextType.ITALIC)
+    nodes = split_nodes_delimiter(nodes, "`", TextType.CODE)
+    nodes = split_nodes_image(nodes)
+    nodes = split_nodes_link(nodes)
+    return nodes
+
+
 def split_nodes_delimiter(old_nodes, delimiter, text_type):
     if not isinstance(old_nodes, list):
         raise TypeError("old_nodes is required to be a list of TextNodes")
@@ -47,6 +57,9 @@ def split_nodes_delimiter(old_nodes, delimiter, text_type):
         # TODO: Fix bug when bold symbol is being confused as italic sentence
         if node.text.count(delimiter) % 2 != 0:
             raise Exception("Invalid markdown syntax, missing closing delimiter?")
+        elif node.text.count(delimiter) == 0 and node is not old_nodes[-1]:
+            new_nodes.append(node)
+            continue
         elif node.text.count(delimiter) == 0:
             return old_nodes
 
@@ -73,7 +86,10 @@ def split_nodes_image(old_nodes):
     new_nodes = []
     for node in old_nodes:
         images = extract_markdown_images(node.text)
-        if not images:
+        if not images and node is not old_nodes[-1]:
+            new_nodes.append(node)
+            continue
+        elif not images:
             return old_nodes
 
         image_tup = images[0]
@@ -97,7 +113,10 @@ def split_nodes_link(old_nodes):
     new_nodes = []
     for node in old_nodes:
         links = extract_markdown_links(node.text)
-        if not links:
+        if not links and node is not old_nodes[-1]:
+            new_nodes.append(node)
+            continue
+        elif not links:
             return old_nodes
 
         link_tup = links[0]

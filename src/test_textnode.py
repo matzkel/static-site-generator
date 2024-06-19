@@ -3,6 +3,7 @@ import unittest
 from textnode import (
     TextNode,
     TextType,
+    text_to_text_nodes,
     split_nodes_delimiter,
     split_nodes_image,
     split_nodes_link,
@@ -23,6 +24,22 @@ class TestTextNode(unittest.TestCase):
         diff_node = TextNode("This is a different text node", "normal")
         self.assertNotEqual(node, diff_node)
     
+    def test_text_to_text_nodes(self):
+        text = "This is **text** with an *italic* word and a `code block` and an ![image](https://storage.googleapis.com/qvault-webapp-dynamic-assets/course_assets/3elNhQu.png) and a [link](https://www.example.com)"
+        result = [
+            TextNode("This is ", TextType.TEXT),
+            TextNode("text", TextType.BOLD),
+            TextNode(" with an ", TextType.TEXT),
+            TextNode("italic", TextType.ITALIC),
+            TextNode(" word and a ", TextType.TEXT),
+            TextNode("code block", TextType.CODE),
+            TextNode(" and an ", TextType.TEXT),
+            TextNode("image", TextType.IMAGE, "https://storage.googleapis.com/qvault-webapp-dynamic-assets/course_assets/3elNhQu.png"),
+            TextNode(" and a ", TextType.TEXT),
+            TextNode("link", TextType.LINK, "https://www.example.com")
+        ]
+        self.assertEqual(text_to_text_nodes(text), result)
+
     def test_split_nodes_diff_delimiters(self):
         node = TextNode("This text has `code block` and **bold sentence**.", TextType.TEXT)
         result = [
