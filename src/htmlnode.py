@@ -45,7 +45,7 @@ class ParentNode(HTMLNode):
         if not self.tag:
             raise ValueError("tag is required")
         if not self.children:
-            raise ValueError("children are required")
+            raise ValueError("children is required to be populated")
 
         result = ""
         for child in self.children:
