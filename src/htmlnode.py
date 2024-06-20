@@ -1,5 +1,7 @@
 from enum import Enum
 
+from textnode import TextType, text_to_text_nodes
+
 
 class BlockType(Enum):
     PARAGRAPH = 1
@@ -100,45 +102,65 @@ def markdown_to_html_node(markdown):
             if count > 6:
                 count = 6
 
-            text = block[count + 1:]
-            children.append(LeafNode(f"h{count}", text))
+            text_nodes = text_to_text_nodes(block[count + 1:])
+            heading = ParentNode(f"h{count}", [])
+            for text_node in text_nodes:
+                heading.children.append(text_node_to_html_node(text_node))
+            children.append(heading)
+
         elif BlockType.CODE:
-            text = block[3:-3]
-            children.append(
-                ParentNode("pre", [
-                    LeafNode("code", text)
-                ])
-            )
+            text_nodes = text_to_text_nodes(block[3:-3])
+            code_block = ParentNode("pre", [
+                ParentNode("code", [])
+            ])
+            for text_node in text_nodes:
+                code_block.children[0].children.append(text_node_to_html_node(text_node))
+            children.append(code_block)
+
         elif BlockType.QUOTE:
-            text = block[1:]
-            children.append(LeafNode("blockquote", text))
+            text_nodes = text_to_text_nodes(block[1:])
+            quote = ParentNode("blockquote", [])
+            for text_node in text_nodes:
+                quote.children.append(text_node_to_html_node(text_node))
+            children.append(quote)
+            
         elif BlockType.UNORDERED_LIST:
-            text = block[2:]
+            text_nodes = text_to_text_nodes(block[2:])
             if children[-1].tag == "ul":
-                children[-1].children.append(
-                    LeafNode("li", text)
-                )
+                point = ParentNode("li", [])
+                for text_node in text_nodes:
+                    point.children.append(text_node_to_html_node(text_node))
+                children[-1].children.append(point)
             else:
-                children.append(
-                    ParentNode("ul", [
-                        LeafNode("li", text)
-                    ])
-                )
+                point = ParentNode("ul", [
+                    ParentNode("li", [])
+                ])
+                for text_node in text_nodes:
+                    point.children.children(text_node_to_html_node(text_node))
+                children.append(point)
+                
         # Won't work if ordered list goes beyond single digits
         elif BlockType.ORDERED_LIST:
-            text = block[2:]
+            text_nodes = text_to_text_nodes(block[2:])
             if children[-1].tag == "ol":
-                children[-1].children.append(
-                    LeafNode("li", text)
-                )
+                point = ParentNode("li", [])
+                for text_node in text_nodes:
+                    point.children.append(text_node_to_html_node(text_node))
+                children[-1].children.append(point)
             else:
-                children.append(
-                    ParentNode("ol", [
-                        LeafNode("li", text)
-                    ])
-                )
+                point = ParentNode("ul", [
+                    ParentNode("li", [])
+                ])
+                for text_node in text_nodes:
+                    point.children.children(text_node_to_html_node(text_node))
+                children.append(point)
+
         elif BlockType.PARAGRAPH:
-            children.append(LeafNode("p", text))
+            text_nodes = text_to_text_nodes(block)
+            paragraph = ParentNode("p", [])
+            for text_node in text_nodes:
+                paragraph.children.append(text_node_to_html_node(text_node))
+            children.append(paragraph)
     return ParentNode("div", children)
 
 
@@ -161,3 +183,27 @@ def block_to_block_type(block):
 def markdown_to_blocks(markdown):
     result = [x.strip() for x in markdown.split("\n")]
     return [x for x in filter(lambda x: x != "", result)]
+
+
+def extract_title(markdown):
+    title = markdown_to_blocks(markdown)[0]
+    if title.startswith("# "):
+        return title[2:]
+    else:
+        raise Exception("h1 header is required")
+
+
+def text_node_to_html_node(text_node):
+    if text_node.text_type == TextType.TEXT:
+        return LeafNode(None, text_node.text)
+    elif text_node.text_type == TextType.BOLD:
+        return LeafNode("b", text_node.text)
+    elif text_node.text_type == TextType.ITALIC:
+        return LeafNode("i", text_node.text)
+    elif text_node.text_type == TextType.CODE:
+        return LeafNode("code", text_node.text)
+    elif text_node.text_type == TextType.LINK:
+        return LeafNode("a", text_node.text, {"href": text_node.url})
+    elif text_node.text_type == TextType.IMAGE:
+        return LeafNode("img", "", {"src": text_node.url, "alt": text_node.text})
+    raise TypeError("text_node.text_type is required to be of appropriate value")

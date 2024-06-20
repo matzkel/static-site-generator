@@ -9,7 +9,6 @@ from textnode import (
     split_nodes_link,
     extract_markdown_images,
     extract_markdown_links,
-    text_node_to_html_node,
 )
 
 
@@ -150,14 +149,6 @@ class TestTextNode(unittest.TestCase):
     def test_extract_markdown_links(self):
         text = "This is text with a [link](https://www.example.com)"
         self.assertEqual(extract_markdown_links(text), [("link", "https://www.example.com")])
-
-    def test_to_html_node(self):
-        node = TextNode("This is a text node", TextType.BOLD)
-        self.assertEqual(str(text_node_to_html_node(node)), "HTMLNode('<b>', 'This is a text node')")
-
-    def test_to_html_node_value_error(self):
-        node = TextNode("This text has wrong type.", "something")
-        self.assertRaises(TypeError, text_node_to_html_node, node)
 
 
 if __name__ == "__main__":

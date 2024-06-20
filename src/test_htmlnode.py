@@ -8,7 +8,10 @@ from htmlnode import (
     markdown_to_html_node,
     block_to_block_type,
     markdown_to_blocks,
+    text_node_to_html_node,
 )
+
+from textnode import TextType, TextNode
 
 
 class TestHTMLNode(unittest.TestCase):
@@ -36,24 +39,44 @@ class TestHTMLNode(unittest.TestCase):
         This is the same paragraph on a new line\n
         ```This is a code block```\n
         >This is a quote from someone\n
-        ```This is actually just a paragraph\n
         \n
         * This is a list
         * with items
         '''
         self.assertEqual(markdown_to_html_node(markdown), ParentNode("div", [
-            LeafNode("h4", "This is heading"),
-            LeafNode("p", "This is **bolded** paragraph"),
-            LeafNode("p", "This is another paragraph with *italic* text and `code` here"),
-            LeafNode("p", "This is the same paragraph on a new line"),
-            ParentNode("pre", [
-                LeafNode("code", "This is a code block"),
+            ParentNode("h4", [
+                LeafNode(None, "This is a heading"),
             ]),
-            LeafNode("quoteblock", "This is a quote from someone"),
-            LeafNode("p", "```this is actually just a paragraph"),
+            ParentNode("p", [
+                LeafNode(None, "This is "),
+                LeafNode("b", "bolded"),
+                LeafNode(None, " paragraph"),
+            ]),
+            ParentNode("p", [
+                LeafNode(None, "This is another paragraph with "),
+                LeafNode("i", "italic"),
+                LeafNode(None, " text and "),
+                LeafNode("code", "code"),
+                LeafNode(None, " here"),
+            ]),
+            ParentNode("p", [
+                LeafNode(None, "This is the same paragraph on a new line"),
+            ]),
+            ParentNode("pre", [
+                ParentNode("code", [
+                    LeafNode(None, "This is a code block"),
+                ]),
+            ]),
+            ParentNode("quoteblock", [
+                LeafNode(None, "This is a quote from someone"),
+            ]),
             ParentNode("ul", [
-                LeafNode("li", "This is a list"),
-                LeafNode("li", "with items")
+                ParentNode("li", [
+                    LeafNode(None, "This is a list"),
+                ]),
+                ParentNode("li", [
+                    LeafNode(None, "with items"),
+                ])
             ])
         ]))
 
@@ -88,6 +111,14 @@ class TestHTMLNode(unittest.TestCase):
             "* with items",
         ]
         self.assertEqual(markdown_to_blocks(markdown), result)
+
+    def test_to_html_node(self):
+        node = TextNode("This is a text node", TextType.BOLD)
+        self.assertEqual(str(text_node_to_html_node(node)), "HTMLNode('<b>', 'This is a text node')")
+
+    def test_to_html_node_value_error(self):
+        node = TextNode("This text has wrong type.", "something")
+        self.assertRaises(TypeError, text_node_to_html_node, node)
 
 
 class TestParentNode(unittest.TestCase):
