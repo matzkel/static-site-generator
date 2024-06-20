@@ -1,6 +1,14 @@
 import unittest
 
-from htmlnode import HTMLNode, ParentNode, LeafNode
+from htmlnode import (
+    BlockType,
+    HTMLNode,
+    ParentNode,
+    LeafNode,
+    markdown_to_html_node,
+    block_to_block_type,
+    markdown_to_blocks,
+)
 
 
 class TestHTMLNode(unittest.TestCase):
@@ -18,6 +26,68 @@ class TestHTMLNode(unittest.TestCase):
             "target": "_blank",
         })
         self.assertEqual(node.props_to_html(), "href=\"https://google.com\" target=\"_blank\"")
+    
+    def markdown_to_html_node(self):
+        markdown = '''
+        #### This is heading
+        This is **bolded** paragraph
+        \n
+        This is another paragraph with *italic* text and `code` here\n
+        This is the same paragraph on a new line\n
+        ```This is a code block```\n
+        >This is a quote from someone\n
+        ```This is actually just a paragraph\n
+        \n
+        * This is a list
+        * with items
+        '''
+        self.assertEqual(markdown_to_html_node(markdown), ParentNode("div", [
+            LeafNode("h4", "This is heading"),
+            LeafNode("p", "This is **bolded** paragraph"),
+            LeafNode("p", "This is another paragraph with *italic* text and `code` here"),
+            LeafNode("p", "This is the same paragraph on a new line"),
+            ParentNode("pre", [
+                LeafNode("code", "This is a code block"),
+            ]),
+            LeafNode("quoteblock", "This is a quote from someone"),
+            LeafNode("p", "```this is actually just a paragraph"),
+            ParentNode("ul", [
+                LeafNode("li", "This is a list"),
+                LeafNode("li", "with items")
+            ])
+        ]))
+
+    def test_block_to_block_type_heading(self):
+        block = "#### Heading!"
+        self.assertEqual(block_to_block_type(block), BlockType.HEADING)
+
+    def test_block_to_block_type_code(self):
+        block = "```code block```"
+        self.assertEqual(block_to_block_type(block), BlockType.CODE)
+
+    def test_block_to_block_type_invalid(self):
+        block = "```not a code block"
+        self.assertEqual(block_to_block_type(block), BlockType.PARAGRAPH)
+
+    def test_markdown_to_blocks(self):
+        markdown = '''
+        This is **bolded** paragraph
+        \n
+        This is another paragraph with *italic* text and `code` here\n
+        This is the same paragraph on a new line\n
+        \n
+        * This is a list
+        * with items
+        '''
+        
+        result = [
+            "This is **bolded** paragraph",
+            "This is another paragraph with *italic* text and `code` here",
+            "This is the same paragraph on a new line",
+            "* This is a list",
+            "* with items",
+        ]
+        self.assertEqual(markdown_to_blocks(markdown), result)
 
 
 class TestParentNode(unittest.TestCase):

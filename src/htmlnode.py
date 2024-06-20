@@ -1,3 +1,15 @@
+from enum import Enum
+
+
+class BlockType(Enum):
+    PARAGRAPH = 1
+    HEADING = 2
+    CODE = 3
+    QUOTE = 4
+    UNORDERED_LIST = 5
+    ORDERED_LIST = 6
+
+
 class HTMLNode():
     def __init__(self, tag=None, value=None, children=None, props=None):
         self.tag = tag # Without a tag will render as raw text
@@ -56,7 +68,6 @@ class ParentNode(HTMLNode):
         return f"<{self.tag} {self.props_to_html()}>{result}</{self.tag}>"
             
 
-
 class LeafNode(HTMLNode):
     def __init__(self, tag=None, value=None, props=None):
         super().__init__(tag, value, None, props)
@@ -71,3 +82,82 @@ class LeafNode(HTMLNode):
         if not self.props:
             return f"<{self.tag}>{self.value}</{self.tag}>"
         return f"<{self.tag} {self.props_to_html()}>{self.value}</{self.tag}>"
+
+
+def markdown_to_html_node(markdown):
+    blocks = markdown_to_blocks(markdown)
+    children = []
+    for block in blocks:
+        block_type = block_to_block_type(block)
+        # Might have bugs if count excedes 6
+        if BlockType.HEADING:
+            count = 0
+            for ch in block:
+                if ch == "#":
+                    count += 1
+                elif ch == " ":
+                    break
+            if count > 6:
+                count = 6
+
+            text = block[count + 1:]
+            children.append(LeafNode(f"h{count}", text))
+        elif BlockType.CODE:
+            text = block[3:-3]
+            children.append(
+                ParentNode("pre", [
+                    LeafNode("code", text)
+                ])
+            )
+        elif BlockType.QUOTE:
+            text = block[1:]
+            children.append(LeafNode("blockquote", text))
+        elif BlockType.UNORDERED_LIST:
+            text = block[2:]
+            if children[-1].tag == "ul":
+                children[-1].children.append(
+                    LeafNode("li", text)
+                )
+            else:
+                children.append(
+                    ParentNode("ul", [
+                        LeafNode("li", text)
+                    ])
+                )
+        # Won't work if ordered list goes beyond single digits
+        elif BlockType.ORDERED_LIST:
+            text = block[2:]
+            if children[-1].tag == "ol":
+                children[-1].children.append(
+                    LeafNode("li", text)
+                )
+            else:
+                children.append(
+                    ParentNode("ol", [
+                        LeafNode("li", text)
+                    ])
+                )
+        elif BlockType.PARAGRAPH:
+            children.append(LeafNode("p", text))
+    return ParentNode("div", children)
+
+
+def block_to_block_type(block):
+    if block.startswith("#"):
+        return BlockType.HEADING
+    elif block.startswith("```") and block.endswith("```"):
+        return BlockType.CODE
+    elif block.startswith(">"):
+        return BlockType.QUOTE
+    elif block.startswith("* ") or block.startswith("- "):
+        return BlockType.UNORDERED_LIST
+    # Won't work if ordered list goes beyond single digits
+    elif block[0].isdigit() and block[1].startswith("."):
+        return BlockType.ORDERED_LIST
+    else:
+        return BlockType.PARAGRAPH
+
+
+def markdown_to_blocks(markdown):
+    result = [x.strip() for x in markdown.split("\n")]
+    return [x for x in filter(lambda x: x != "", result)]
