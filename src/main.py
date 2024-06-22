@@ -14,26 +14,28 @@ def generate_page(from_path, template_path, dest_path):
     template = ""
     with open(template_path) as file:
         template = file.read()
-    
-
 
 
 def copy_r(directory):
     if not os.path.exists(directory):
         raise ValueError("directory doesn't exist")
     
-    if directory == "/static":
+    if directory == "./static":
         if not os.path.exists("./public"):
             os.mkdir("./public")
         else:
             shutil.rmtree("./public")
             os.mkdir("./public")
+    else:
+        temp = directory.replace("static", "public")
+        if not os.path.exists(temp):
+            os.mkdir(temp)
 
     files = os.listdir(directory)
     for file in files:
         path = os.path.join(directory, file)
         if os.path.isfile(path):
-            shutil.copy(path, "./public")
+            shutil.copy(path, path.replace("static", "public"))
         else:
             copy_r(path)
 
