@@ -1,6 +1,6 @@
 from enum import Enum
 
-from textnode import TextType, text_to_text_nodes
+from textnode import TextNode, TextType, text_to_text_nodes
 
 
 class BlockType(Enum):
@@ -75,7 +75,7 @@ class LeafNode(HTMLNode):
         super().__init__(tag, value, None, props)
 
     def to_html(self):
-        if not self.value:
+        if not self.value and self.tag != "img":
             raise ValueError("value is required")
             
         if not self.tag:
@@ -87,12 +87,14 @@ class LeafNode(HTMLNode):
 
 
 def markdown_to_html_node(markdown):
-    blocks = markdown_to_blocks(markdown)
+    blocks = markdown_to_blocks(markdown)[1:]
+    is_code_block = False
+
     children = []
     for block in blocks:
         block_type = block_to_block_type(block)
         # Might have bugs if count excedes 6
-        if BlockType.HEADING:
+        if block_type is BlockType.HEADING:
             count = 0
             for ch in block:
                 if ch == "#":
@@ -108,23 +110,28 @@ def markdown_to_html_node(markdown):
                 heading.children.append(text_node_to_html_node(text_node))
             children.append(heading)
 
-        elif BlockType.CODE:
-            text_nodes = text_to_text_nodes(block[3:-3])
-            code_block = ParentNode("pre", [
-                ParentNode("code", [])
-            ])
-            for text_node in text_nodes:
-                code_block.children[0].children.append(text_node_to_html_node(text_node))
-            children.append(code_block)
+        elif block_type is BlockType.CODE or is_code_block:
+            if is_code_block and block != "```":
+                children[-1].children[0].children.append(
+                    LeafNode(value=block + "\n")
+                )
+            elif children[-1].tag != "pre":
+                code_block = ParentNode("pre", [
+                    ParentNode("code", [])
+                ])
+                children.append(code_block)
 
-        elif BlockType.QUOTE:
-            text_nodes = text_to_text_nodes(block[1:])
+            if block == "```":
+                is_code_block = not is_code_block
+
+        elif block_type is BlockType.QUOTE:
+            text_nodes = text_to_text_nodes(block[1:].strip())
             quote = ParentNode("blockquote", [])
             for text_node in text_nodes:
                 quote.children.append(text_node_to_html_node(text_node))
             children.append(quote)
             
-        elif BlockType.UNORDERED_LIST:
+        elif block_type is BlockType.UNORDERED_LIST:
             text_nodes = text_to_text_nodes(block[2:])
             if children[-1].tag == "ul":
                 point = ParentNode("li", [])
@@ -136,11 +143,11 @@ def markdown_to_html_node(markdown):
                     ParentNode("li", [])
                 ])
                 for text_node in text_nodes:
-                    point.children.children(text_node_to_html_node(text_node))
+                    point.children[-1].children.append(text_node_to_html_node(text_node))
                 children.append(point)
                 
         # Won't work if ordered list goes beyond single digits
-        elif BlockType.ORDERED_LIST:
+        elif block_type is BlockType.ORDERED_LIST:
             text_nodes = text_to_text_nodes(block[2:])
             if children[-1].tag == "ol":
                 point = ParentNode("li", [])
@@ -148,14 +155,14 @@ def markdown_to_html_node(markdown):
                     point.children.append(text_node_to_html_node(text_node))
                 children[-1].children.append(point)
             else:
-                point = ParentNode("ul", [
+                point = ParentNode("ol", [
                     ParentNode("li", [])
                 ])
                 for text_node in text_nodes:
-                    point.children.children(text_node_to_html_node(text_node))
+                    point.children[0].children.append(text_node_to_html_node(text_node))
                 children.append(point)
 
-        elif BlockType.PARAGRAPH:
+        elif block_type is BlockType.PARAGRAPH:
             text_nodes = text_to_text_nodes(block)
             paragraph = ParentNode("p", [])
             for text_node in text_nodes:

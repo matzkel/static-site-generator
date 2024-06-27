@@ -1,9 +1,10 @@
 import os
 import shutil
 
+from htmlnode import markdown_to_html_node, extract_title
 
 def main():
-    copy_r("./static")
+    generate_page("./static/content/index.md", "./static/template.html", "./public")
 
 
 def generate_page(from_path, template_path, dest_path):
@@ -14,6 +15,14 @@ def generate_page(from_path, template_path, dest_path):
     template = ""
     with open(template_path) as file:
         template = file.read()
+
+    html = markdown_to_html_node(markdown).to_html()
+    title = extract_title(markdown)
+
+    result = template.replace("{{ Title }}", title).replace("{{ Content }}", html)
+    file_name = from_path.split("/")[-1][:-3] + ".html"
+    with open(os.path.join(dest_path, file_name), "w") as file:
+        file.write(result)
 
 
 def copy_r(directory):
