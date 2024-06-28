@@ -4,7 +4,29 @@ import shutil
 from htmlnode import markdown_to_html_node, extract_title
 
 def main():
-    generate_page("./static/content/index.md", "./static/template.html", "./public")
+    copy_r("./static")
+    generate_pages_r("./static", "./static/template.html", "./public")
+
+
+def generate_pages_r(dir_path_content, template_path, dest_dir_path):
+    if not os.path.exists(dir_path_content):
+        raise ValueError("dir_path_content doesn't exist")
+    if not os.path.exists(template_path):
+        raise ValueError("template_path doesn't exist")
+    if not os.path.exists(dest_dir_path):
+        raise ValueError("dest_dir_path doesn't exist")
+
+    files = os.listdir(dir_path_content)
+    for file in files:
+        path = os.path.join(dir_path_content, file)
+        if os.path.isfile(path) and file.endswith(".md"):
+            generate_page(path, template_path, dest_dir_path)
+        elif os.path.isdir(path):
+            if "content" not in path:
+                dest_path = os.path.join(dest_dir_path, file)
+                generate_pages_r(path, template_path, dest_path)
+            else:
+                generate_pages_r(path, template_path, dest_dir_path)
 
 
 def generate_page(from_path, template_path, dest_path):
